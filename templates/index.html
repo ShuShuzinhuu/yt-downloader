@@ -269,65 +269,89 @@
         }
 
         function downloadStart() {
-            // Pega o token gerado pelo widget manual
             const token = turnstile.getResponse(turnstileWidgetId);
-
-            if (!token) {
-                alert("Por favor, complete o desafio 'Sou humano'.");
-                return;
-            }
+            if (!token) return alert("Complete o desafio 'Sou humano'.");
 
             const url = document.getElementById('url').value;
             const quality = document.getElementById('quality-select').value;
             const taskId = generateUUID();
 
+            // UI: Mostra barra e muda botão
             document.getElementById('progress-container').style.display = 'block';
             const btn = document.getElementById('btn-download');
             btn.disabled = true;
             btn.innerHTML = '<i class="fas fa-cog fa-spin"></i> Processando...';
+            
+            const pBar = document.getElementById('progress-bar');
+            const statusText = document.getElementById('status-text');
 
+            // --- POLLING INTELIGENTE ---
             let pollInterval = setInterval(async () => {
                 try {
                     const res = await fetch(`/progress/${taskId}`);
                     const data = await res.json();
+                    
+                    // Se der erro no backend
+                    if (data.status === 'error') {
+                        clearInterval(pollInterval);
+                        alert('Erro no servidor: ' + (data.msg || 'Desconhecido'));
+                        resetUI();
+                        return;
+                    }
+
                     if (data.percent) {
-                        const pBar = document.getElementById('progress-bar');
                         pBar.style.width = data.percent;
                         pBar.innerText = data.percent;
                         
+                        // Atualiza textos
                         if (data.status === 'converting') {
-                             document.getElementById('status-text').innerText = 'Convertendo e salvando...';
+                             statusText.innerText = 'Convertendo e salvando...';
                              pBar.style.background = 'linear-gradient(90deg, #3b82f6, #6366f1)';
-                        } else {
-                             document.getElementById('status-text').innerText = 'Baixando do YouTube...';
+                        } else if (data.status === 'downloading') {
+                             statusText.innerText = 'Baixando do YouTube...';
+                        } else if (data.status === 'completed' || data.percent.includes('100%')) {
+                             // --- SUCESSO! ---
+                             clearInterval(pollInterval); // Para de perguntar
+                             statusText.innerText = 'Download iniciado! Verifique seus arquivos.';
+                             pBar.style.background = '#10b981'; // Verde
+                             pBar.innerText = "Concluído!";
+                             
+                             // Reseta o botão após 3 segundos
+                             setTimeout(() => {
+                                 resetUI();
+                                 turnstile.reset(turnstileWidgetId);
+                             }, 3000);
                         }
                     }
-                } catch (e) {}
+                } catch (e) {
+                    console.log("Erro de conexão no poll", e);
+                }
             }, 1000);
 
+            // Envia o formulário (Download real)
             const form = document.createElement('form');
             form.method = 'POST';
             form.action = '/download';
             
             const fields = {url: url, quality: quality, task_id: taskId, 'cf-turnstile-response': token};
-            
             for (const key in fields) {
                 const input = document.createElement('input');
                 input.name = key;
                 input.value = fields[key];
                 form.appendChild(input);
             }
-
             document.body.appendChild(form);
             form.submit();
             document.body.removeChild(form);
-            
-            setTimeout(() => { 
-                document.getElementById('status-text').innerText = 'Download concluído! Verifique sua pasta.';
-                btn.disabled = false;
-                btn.innerHTML = 'Baixar Novamente';
-                turnstile.reset(turnstileWidgetId);
-            }, 300000); 
+        }
+
+        // Função auxiliar para voltar a tela ao normal
+        function resetUI() {
+            const btn = document.getElementById('btn-download');
+            btn.disabled = false;
+            btn.innerHTML = '<i class="fas fa-download"></i> BAIXAR AGORA';
+            // Opcional: Esconder a barra depois de um tempo
+            // document.getElementById('progress-container').style.display = 'none';
         }
     </script>
 </body>
