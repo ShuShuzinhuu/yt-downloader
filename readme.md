@@ -11,6 +11,15 @@ Este é um projeto de **Downloader de YouTube** com interface web moderna (Dark 
 > Este código foi inteiramente gerado através de interações com um Modelo de Linguagem Grande (LLM). Embora funcional, ele serve primariamente para fins educacionais e de prototipagem. Pode conter padrões que não seguem estritamente as melhores práticas de engenharia de software empresarial. Use por sua conta e risco.
 
 ---
+## .env example
+```bash
+CF_SECRET_KEY=yourscretket
+EXPECTED_HOSTNAME=example.com
+FLASK_PORT=1234
+FLASK_DEBUG=True
+ADMIN_PASSWORD=my_password_secret
+FLASK_SECRET_KEY=12345677898
+```
 
 ## ✨ Funcionalidades
 
