@@ -1,0 +1,334 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>YT Downloader Pro</title>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    
+    <script src="https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit"></script>
+    
+    <style>
+        /* --- RESET E BASE --- */
+        * { box-sizing: border-box; margin: 0; padding: 0; outline: none; }
+        
+        body { 
+            font-family: 'Poppins', sans-serif; 
+            /* Fundo Escuro Moderno */
+            background: radial-gradient(circle at top, #1e293b, #0f172a);
+            min-height: 100vh; 
+            display: flex; 
+            align-items: center; 
+            justify-content: center; 
+            padding: 20px;
+            color: #e2e8f0;
+        }
+
+        /* --- CONTAINER PRINCIPAL --- */
+        .container { 
+            background: rgba(30, 41, 59, 0.7); /* Fundo semi-transparente escuro */
+            backdrop-filter: blur(10px); /* Efeito de vidro */
+            padding: 40px; 
+            border-radius: 24px; 
+            width: 100%; 
+            max-width: 500px; 
+            text-align: center; 
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+        }
+
+        h1 {
+            font-weight: 600;
+            margin-bottom: 30px;
+            color: #fff;
+            letter-spacing: 0.5px;
+        }
+        
+        h1 i { color: #ff4444; margin-right: 10px; }
+
+        /* --- INPUTS E SELECTS --- */
+        input[type="text"], select { 
+            width: 100%; 
+            padding: 16px; 
+            border: 2px solid #334155; 
+            background-color: #0f172a; /* Fundo muito escuro */
+            color: #fff;
+            border-radius: 12px; 
+            margin-bottom: 20px; 
+            font-size: 15px;
+            font-family: inherit;
+            transition: border-color 0.3s, box-shadow 0.3s;
+        }
+
+        input[type="text"]::placeholder { color: #64748b; }
+
+        input[type="text"]:focus, select:focus {
+            border-color: #6366f1; /* Roxo Neon ao focar */
+            box-shadow: 0 0 0 4px rgba(99, 102, 241, 0.2);
+        }
+
+        /* --- BOTÕES --- */
+        button { 
+            width: 100%; 
+            padding: 16px; 
+            border: none; 
+            border-radius: 12px; 
+            /* Gradiente Vibrante */
+            background: linear-gradient(135deg, #ef4444 0%, #b91c1c 100%);
+            color: white; 
+            font-weight: 600; 
+            font-size: 16px;
+            cursor: pointer; 
+            margin-top: 10px;
+            transition: transform 0.2s, box-shadow 0.2s;
+            box-shadow: 0 4px 15px rgba(239, 68, 68, 0.4);
+        }
+        
+        button:hover { 
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(239, 68, 68, 0.6);
+        }
+
+        button:active { transform: translateY(0); }
+
+        button:disabled { 
+            background: #475569; 
+            color: #94a3b8;
+            cursor: not-allowed; 
+            box-shadow: none;
+            transform: none;
+        }
+
+        button#btn-check {
+            background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%); /* Azul para o botão de verificar */
+            box-shadow: 0 4px 15px rgba(59, 130, 246, 0.4);
+        }
+        button#btn-check:hover {
+            box-shadow: 0 6px 20px rgba(59, 130, 246, 0.6);
+        }
+
+        /* --- ELEMENTOS DE VÍDEO --- */
+        #options-area { display: none; margin-top: 30px; animation: fadeIn 0.5s ease; }
+        
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+
+        img#vid-thumb { 
+            width: 100%; 
+            border-radius: 12px; 
+            margin-bottom: 20px; 
+            border: 1px solid rgba(255,255,255,0.1);
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.3);
+        }
+
+        h3#vid-title {
+            color: #f8fafc;
+            margin-bottom: 20px;
+            font-weight: 400;
+            line-height: 1.5;
+        }
+
+        /* --- PROGRESS BAR --- */
+        .progress-container { 
+            display: none; 
+            margin-top: 25px; 
+            background-color: #334155; 
+            border-radius: 50px; 
+            overflow: hidden; 
+            height: 24px; 
+        }
+        
+        .progress-bar { 
+            height: 100%; 
+            width: 0%; 
+            background: linear-gradient(90deg, #10b981, #34d399); /* Verde Neon */
+            color: #0f172a; 
+            text-align: center; 
+            font-size: 12px; 
+            font-weight: bold;
+            line-height: 24px; 
+            transition: width 0.4s ease;
+        }
+
+        /* --- LOADER --- */
+        .loader-spinner { 
+            border: 3px solid rgba(255,255,255,0.1); 
+            border-top: 3px solid #6366f1; 
+            border-radius: 50%; 
+            width: 40px; 
+            height: 40px; 
+            animation: spin 1s linear infinite; 
+            margin: 30px auto; 
+            display: none; 
+        }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+
+        /* Container do Turnstile */
+        #turnstile-container { margin: 25px auto; display: flex; justify-content: center; min-height: 65px; }
+
+        /* Ajuste para telas pequenas */
+        @media (max-width: 480px) {
+            .container { padding: 25px; }
+            h1 { font-size: 24px; }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <h1><i class="fab fa-youtube"></i> Baixador Pro</h1>
+        
+        <div id="step1">
+            <input type="text" id="url" placeholder="Cole o link do YouTube aqui...">
+            <button onclick="checkVideo()" id="btn-check">
+                <i class="fas fa-search"></i> Verificar Vídeo
+            </button>
+        </div>
+
+        <div id="loading-check" class="loader-spinner"></div>
+
+        <div id="options-area">
+            <img id="vid-thumb" src="">
+            <h3 id="vid-title"></h3>
+            
+            <select id="quality-select">
+                <option value="best">🌟 Melhor Qualidade (WEBM)</option> 
+                <option value="1080">📺 Full HD (1080p)</option>
+                <option value="720">💻 HD (720p)</option>
+                <option value="audio">🎵 Áudio Apenas (MP3)</option>  
+            </select>
+            
+            <div id="turnstile-container"></div>
+            
+            <button id="btn-download" onclick="downloadStart()">
+                <i class="fas fa-download"></i> BAIXAR AGORA
+            </button>
+            
+            <div class="progress-container" id="progress-container">
+                <div class="progress-bar" id="progress-bar">0%</div>
+            </div>
+            <div id="status-text" style="margin-top:15px; font-size:14px; color:#94a3b8;"></div>
+        </div>
+    </div>
+
+    <script>
+        // --- CONFIGURAÇÃO ---
+        // Adicione sua Site Key aqui
+        const SITE_KEY = "0x4AAAAAACC3u2rJ53Q1h0b-"; 
+        let turnstileWidgetId = null;
+
+        function generateUUID() {
+            return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
+                var r = Math.random() * 16 | 0, v = c == 'x' ? r : (r & 0x3 | 0x8);
+                return v.toString(16);
+            });
+        }
+
+        async function checkVideo() {
+            const url = document.getElementById('url').value;
+            if (!url) return alert('Por favor, cole um link!');
+
+            document.getElementById('btn-check').disabled = true;
+            document.getElementById('btn-check').innerHTML = '<i class="fas fa-spinner fa-spin"></i> Verificando...';
+            document.getElementById('loading-check').style.display = 'block';
+            document.getElementById('options-area').style.display = 'none';
+
+            try {
+                const response = await fetch('/info', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/x-www-form-urlencoded'},
+                    body: `url=${encodeURIComponent(url)}`
+                });
+                const data = await response.json();
+                if (data.error) throw new Error(data.error);
+
+                document.getElementById('vid-title').innerText = data.title;
+                document.getElementById('vid-thumb').src = data.thumbnail;
+                
+                // Exibe a área de opções
+                document.getElementById('options-area').style.display = 'block';
+                
+                // --- RENDERIZA O TURNSTILE MANUALMENTE (MODO ESCURO) ---
+                if (window.turnstile) {
+                    if (turnstileWidgetId) turnstile.remove(turnstileWidgetId);
+                    
+                    turnstileWidgetId = turnstile.render('#turnstile-container', {
+                        sitekey: SITE_KEY,
+                        action: 'download',
+                        theme: 'dark' // Força o tema escuro no captcha
+                    });
+                }
+
+            } catch (e) {
+                alert('Erro: ' + e.message);
+            } finally {
+                document.getElementById('loading-check').style.display = 'none';
+                document.getElementById('btn-check').disabled = false;
+                document.getElementById('btn-check').innerHTML = '<i class="fas fa-search"></i> Verificar Vídeo';
+            }
+        }
+
+        function downloadStart() {
+            // Pega o token gerado pelo widget manual
+            const token = turnstile.getResponse(turnstileWidgetId);
+
+            if (!token) {
+                alert("Por favor, complete o desafio 'Sou humano'.");
+                return;
+            }
+
+            const url = document.getElementById('url').value;
+            const quality = document.getElementById('quality-select').value;
+            const taskId = generateUUID();
+
+            document.getElementById('progress-container').style.display = 'block';
+            const btn = document.getElementById('btn-download');
+            btn.disabled = true;
+            btn.innerHTML = '<i class="fas fa-cog fa-spin"></i> Processando...';
+
+            let pollInterval = setInterval(async () => {
+                try {
+                    const res = await fetch(`/progress/${taskId}`);
+                    const data = await res.json();
+                    if (data.percent) {
+                        const pBar = document.getElementById('progress-bar');
+                        pBar.style.width = data.percent;
+                        pBar.innerText = data.percent;
+                        
+                        if (data.status === 'converting') {
+                             document.getElementById('status-text').innerText = 'Convertendo e salvando...';
+                             pBar.style.background = 'linear-gradient(90deg, #3b82f6, #6366f1)';
+                        } else {
+                             document.getElementById('status-text').innerText = 'Baixando do YouTube...';
+                        }
+                    }
+                } catch (e) {}
+            }, 1000);
+
+            const form = document.createElement('form');
+            form.method = 'POST';
+            form.action = '/download';
+            
+            const fields = {url: url, quality: quality, task_id: taskId, 'cf-turnstile-response': token};
+            
+            for (const key in fields) {
+                const input = document.createElement('input');
+                input.name = key;
+                input.value = fields[key];
+                form.appendChild(input);
+            }
+
+            document.body.appendChild(form);
+            form.submit();
+            document.body.removeChild(form);
+            
+            setTimeout(() => { 
+                document.getElementById('status-text').innerText = 'Download concluído! Verifique sua pasta.';
+                btn.disabled = false;
+                btn.innerHTML = 'Baixar Novamente';
+                turnstile.reset(turnstileWidgetId);
+            }, 300000); 
+        }
+    </script>
+</body>
+</html>

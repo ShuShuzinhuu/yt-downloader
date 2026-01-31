@@ -1,0 +1,5 @@
+flask
+yt-dlp
+requests
+apscheduler
+dotenv
