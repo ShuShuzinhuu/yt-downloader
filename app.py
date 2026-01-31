@@ -147,22 +147,31 @@ def download():
             filename_original = ydl.prepare_filename(info)
             filename_to_send = os.path.splitext(filename_original)[0] + ".mp3" if quality == 'audio' else filename_original
 
-            if task_id in progress_store:
-                del progress_store[task_id]
+            # --- MUDANÇA AQUI ---
+            # 1. Avisamos que completou ANTES de apagar
+            progress_store[task_id] = {'percent': '100%', 'status': 'completed'}
 
             @after_this_request
-            def remove_file(response):
+            def remove_file_and_memory(response):
                 try:
+                    # Deleta o arquivo do disco
                     if filename_to_send and os.path.exists(filename_to_send):
                         os.remove(filename_to_send)
-                except Exception:
-                    pass
+                    
+                    # Deleta o progresso da memória SÓ AGORA
+                    if task_id in progress_store:
+                        del progress_store[task_id]
+                        
+                except Exception as error:
+                    print(f"Erro na limpeza: {error}")
                 return response
 
             return send_file(filename_to_send, as_attachment=True)
             
     except Exception as e:
         print(f"ERRO: {e}")
+        # Em caso de erro, avisa o front para parar de carregar
+        progress_store[task_id] = {'percent': '0%', 'status': 'error', 'msg': str(e)}
         return f"Erro: {str(e)}", 500
 
 if __name__ == '__main__':
