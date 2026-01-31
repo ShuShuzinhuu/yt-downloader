@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>YT Downloader Pro - Secure</title>
+    <title>YT Downloader Pro</title>
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <script src="https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit"></script>
@@ -14,95 +14,76 @@
         
         body { 
             font-family: 'Poppins', sans-serif; 
-            background: radial-gradient(circle at top, #0f172a, #020617);
+            background: radial-gradient(circle at top, #1e293b, #0f172a);
             min-height: 100vh; 
             display: flex; 
             align-items: center; 
             justify-content: center; 
             padding: 20px;
             color: #e2e8f0;
+            position: relative;
         }
 
-        /* --- CONTAINER (Aumentado para mostrar mais conteúdo) --- */
+        /* Botão de Logout */
+        .logout-btn {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            background: rgba(255,255,255,0.05);
+            padding: 10px 20px;
+            border-radius: 50px;
+            text-decoration: none;
+            color: #94a3b8;
+            font-size: 14px;
+            transition: 0.3s;
+            border: 1px solid rgba(255,255,255,0.1);
+        }
+        .logout-btn:hover { background: rgba(239, 68, 68, 0.2); color: #fff; border-color: #ef4444; }
+
+        /* --- CONTAINER PRINCIPAL (Maior e mais espaçoso) --- */
         .container { 
-            background: rgba(30, 41, 59, 0.6);
+            background: rgba(30, 41, 59, 0.7);
             backdrop-filter: blur(12px);
             padding: 40px; 
             border-radius: 24px; 
             width: 100%; 
-            max-width: 600px; /* Aumentado de 500 para 600px */
+            max-width: 650px; /* Largura aumentada */
             text-align: center; 
-            border: 1px solid rgba(255, 255, 255, 0.08);
+            border: 1px solid rgba(255, 255, 255, 0.1);
             box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
-            transition: all 0.3s ease;
+            margin: auto;
         }
 
         h1 { font-weight: 600; margin-bottom: 30px; color: #fff; letter-spacing: 0.5px; }
         h1 i { color: #ff4444; margin-right: 10px; }
 
-        /* --- INPUTS --- */
-        input[type="text"], input[type="password"], select { 
-            width: 100%; 
-            padding: 16px; 
-            border: 2px solid #334155; 
-            background-color: #0f172a; 
-            color: #fff;
-            border-radius: 12px; 
-            margin-bottom: 20px; 
-            font-size: 15px;
-            font-family: inherit;
-            transition: 0.3s;
+        input[type="text"], select { 
+            width: 100%; padding: 18px; border: 2px solid #334155; 
+            background-color: #0f172a; color: #fff; border-radius: 12px; 
+            margin-bottom: 20px; font-size: 16px; font-family: inherit; transition: 0.3s;
         }
+        input:focus, select:focus { border-color: #6366f1; box-shadow: 0 0 0 4px rgba(99, 102, 241, 0.2); }
 
-        input:focus, select:focus {
-            border-color: #6366f1; 
-            box-shadow: 0 0 0 4px rgba(99, 102, 241, 0.15);
-        }
-
-        /* --- BOTÕES --- */
         button { 
-            width: 100%; 
-            padding: 16px; 
-            border: none; 
-            border-radius: 12px; 
+            width: 100%; padding: 18px; border: none; border-radius: 12px; 
             background: linear-gradient(135deg, #ef4444 0%, #b91c1c 100%);
-            color: white; 
-            font-weight: 600; 
-            font-size: 16px;
-            cursor: pointer; 
-            margin-top: 5px;
-            transition: 0.2s;
-            box-shadow: 0 4px 15px rgba(239, 68, 68, 0.4);
+            color: white; font-weight: 600; font-size: 16px; cursor: pointer; 
+            margin-top: 10px; transition: 0.2s; box-shadow: 0 4px 15px rgba(239, 68, 68, 0.4);
         }
-        
         button:hover { transform: translateY(-2px); box-shadow: 0 6px 20px rgba(239, 68, 68, 0.6); }
-        button:disabled { background: #475569; color: #94a3b8; cursor: not-allowed; box-shadow: none; transform: none; }
+        button:disabled { background: #475569; color: #94a3b8; cursor: not-allowed; transform: none; box-shadow: none;}
 
-        button#btn-check {
-            background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
-            box-shadow: 0 4px 15px rgba(59, 130, 246, 0.4);
-        }
+        button#btn-check { background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%); box-shadow: 0 4px 15px rgba(59, 130, 246, 0.4); }
 
-        /* --- TELA DE LOGIN --- */
-        #login-screen { display: block; }
-        #app-screen { display: none; }
-
-        /* --- ÁREA DE VÍDEO --- */
         #options-area { display: none; margin-top: 30px; animation: fadeIn 0.5s ease; }
         @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
 
-        img#vid-thumb { 
-            width: 100%; 
-            border-radius: 12px; 
-            margin-bottom: 20px; 
-            border: 1px solid rgba(255,255,255,0.1);
-            box-shadow: 0 10px 30px -5px rgba(0, 0, 0, 0.4);
-        }
+        img#vid-thumb { width: 100%; border-radius: 12px; margin-bottom: 20px; border: 1px solid rgba(255,255,255,0.1); box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.3); }
+        h3#vid-title { color: #f8fafc; margin-bottom: 20px; font-weight: 400; line-height: 1.5; font-size: 18px; }
 
-        /* --- PROGRESSO --- */
-        .progress-container { display: none; margin-top: 25px; background-color: #334155; border-radius: 50px; overflow: hidden; height: 24px; }
-        .progress-bar { height: 100%; width: 0%; background: linear-gradient(90deg, #10b981, #34d399); color: #0f172a; text-align: center; font-size: 12px; font-weight: bold; line-height: 24px; transition: width 0.4s ease; }
-        
+        .progress-container { display: none; margin-top: 25px; background-color: #334155; border-radius: 50px; overflow: hidden; height: 26px; }
+        .progress-bar { height: 100%; width: 0%; background: linear-gradient(90deg, #10b981, #34d399); color: #0f172a; text-align: center; font-size: 13px; font-weight: bold; line-height: 26px; transition: width 0.4s ease; }
+
         .loader-spinner { border: 3px solid rgba(255,255,255,0.1); border-top: 3px solid #6366f1; border-radius: 50%; width: 40px; height: 40px; animation: spin 1s linear infinite; margin: 30px auto; display: none; }
         @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
 
@@ -111,16 +92,9 @@
 </head>
 <body>
 
-    <div id="login-screen" class="container">
-        <h1><i class="fas fa-lock"></i> Acesso Restrito</h1>
-        <p style="color: #94a3b8; margin-bottom: 20px;">Digite a senha do administrador para continuar.</p>
-        
-        <input type="password" id="admin-password" placeholder="Senha...">
-        <button onclick="performLogin()">Entrar</button>
-        <p id="login-error" style="color: #ef4444; margin-top: 15px; font-size: 14px; display: none;"></p>
-    </div>
+    <a href="/logout" class="logout-btn"><i class="fas fa-sign-out-alt"></i> Sair</a>
 
-    <div id="app-screen" class="container">
+    <div class="container">
         <h1><i class="fab fa-youtube"></i> Baixador Pro</h1>
         
         <div id="step1">
@@ -157,51 +131,9 @@
     </div>
 
     <script>
-        const SITE_KEY = "0x4AAAAAACC3u2rJ53Q1h0b-"; // Sua chave do Cloudflare
+        const SITE_KEY = "0x4AAAAAACC3u2rJ53Q1h0b-"; 
         let turnstileWidgetId = null;
 
-        // --- SISTEMA DE LOGIN ---
-        async function performLogin() {
-            const pwd = document.getElementById('admin-password').value;
-            const btn = document.querySelector('#login-screen button');
-            const errorMsg = document.getElementById('login-error');
-
-            btn.disabled = true;
-            btn.innerText = "Verificando...";
-            errorMsg.style.display = 'none';
-
-            try {
-                const res = await fetch('/login', {
-                    method: 'POST',
-                    headers: {'Content-Type': 'application/json'},
-                    body: JSON.stringify({ password: pwd })
-                });
-                const data = await res.json();
-
-                if (data.success) {
-                    // Troca de tela com animação simples
-                    document.getElementById('login-screen').style.display = 'none';
-                    document.getElementById('app-screen').style.display = 'block';
-                } else {
-                    errorMsg.innerText = "Senha incorreta!";
-                    errorMsg.style.display = 'block';
-                    btn.disabled = false;
-                    btn.innerText = "Entrar";
-                }
-            } catch (e) {
-                errorMsg.innerText = "Erro de conexão com o servidor.";
-                errorMsg.style.display = 'block';
-                btn.disabled = false;
-                btn.innerText = "Entrar";
-            }
-        }
-        
-        // Permite dar Enter no input de senha
-        document.getElementById('admin-password').addEventListener("keypress", function(event) {
-            if (event.key === "Enter") performLogin();
-        });
-
-        // --- SISTEMA DE DOWNLOAD (Igual ao anterior) ---
         function generateUUID() {
             return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
                 var r = Math.random() * 16 | 0, v = c == 'x' ? r : (r & 0x3 | 0x8);
@@ -224,10 +156,9 @@
                     headers: {'Content-Type': 'application/x-www-form-urlencoded'},
                     body: `url=${encodeURIComponent(url)}`
                 });
-                
-                if (response.status === 403) {
-                    alert("Sessão expirada. Por favor, recarregue a página e faça login.");
-                    location.reload();
+
+                if (response.status === 401 || response.status === 403) {
+                    window.location.href = '/login';
                     return;
                 }
 
@@ -276,12 +207,6 @@
                     const res = await fetch(`/progress/${taskId}`);
                     const data = await res.json();
                     
-                    if (data.status === 'error') {
-                        clearInterval(pollInterval);
-                        alert("Erro no servidor.");
-                        resetUI();
-                    }
-
                     if (data.percent) {
                         pBar.style.width = data.percent;
                         pBar.innerText = data.percent;
@@ -291,27 +216,22 @@
                         } else if (data.status === 'downloading') {
                              statusText.innerText = 'Baixando do YouTube...';
                         }
-                        if (data.status === 'completed' || (data.percent.includes('100%'))) {
-                             finishDownload();
+                        if (data.status === 'completed' || data.percent.includes('100%')) {
+                             clearInterval(pollInterval);
+                             statusText.innerText = 'Download Concluído!';
+                             pBar.style.width = "100%";
+                             pBar.innerText = "100%";
+                             pBar.style.background = '#10b981';
+                             btn.innerHTML = '<i class="fas fa-check"></i> Sucesso!';
+                             setTimeout(() => { 
+                                 btn.disabled = false; 
+                                 btn.innerHTML = '<i class="fas fa-download"></i> BAIXAR AGORA';
+                                 turnstile.reset(turnstileWidgetId); 
+                            }, 5000); 
                         }
                     } 
                 } catch (e) { console.log(e); }
             }, 1000);
-
-            function finishDownload() {
-                clearInterval(pollInterval);
-                statusText.innerText = 'Download Concluído!';
-                pBar.style.width = "100%";
-                pBar.innerText = "100%";
-                pBar.style.background = '#10b981';
-                btn.innerHTML = '<i class="fas fa-check"></i> Sucesso!';
-                setTimeout(() => { resetUI(); turnstile.reset(turnstileWidgetId); }, 5000); 
-            }
-
-            function resetUI() {
-                btn.disabled = false;
-                btn.innerHTML = '<i class="fas fa-download"></i> BAIXAR AGORA';
-            }
 
             const form = document.createElement('form');
             form.method = 'POST';

@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login - YT Pro</title>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; outline: none; }
+        body { 
+            font-family: 'Poppins', sans-serif; 
+            background: radial-gradient(circle at top, #020617, #0f172a);
+            min-height: 100vh; 
+            display: flex; 
+            align-items: center; 
+            justify-content: center; 
+            padding: 20px;
+            color: #e2e8f0;
+        }
+        .login-card { 
+            background: rgba(30, 41, 59, 0.4);
+            backdrop-filter: blur(15px);
+            padding: 50px 40px; 
+            border-radius: 24px; 
+            width: 100%; 
+            max-width: 450px; 
+            text-align: center; 
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+        }
+        h1 { margin-bottom: 10px; font-weight: 600; color: #fff; }
+        p { color: #94a3b8; margin-bottom: 30px; font-size: 14px; }
+        
+        input { 
+            width: 100%; padding: 16px; border: 2px solid #334155; 
+            background-color: #0f172a; color: #fff; border-radius: 12px; 
+            margin-bottom: 20px; font-size: 16px; transition: 0.3s;
+        }
+        input:focus { border-color: #6366f1; box-shadow: 0 0 0 4px rgba(99, 102, 241, 0.15); }
+        
+        button { 
+            width: 100%; padding: 16px; border: none; border-radius: 12px; 
+            background: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%);
+            color: white; font-weight: 600; font-size: 16px; cursor: pointer; 
+            transition: 0.2s; box-shadow: 0 4px 15px rgba(99, 102, 241, 0.4);
+        }
+        button:hover { transform: translateY(-2px); box-shadow: 0 6px 20px rgba(99, 102, 241, 0.6); }
+        button:disabled { background: #475569; cursor: not-allowed; }
+        
+        #error-msg { color: #ef4444; margin-top: 15px; display: none; font-size: 14px; }
+    </style>
+</head>
+<body>
+    <div class="login-card">
+        <h1><i class="fas fa-shield-alt" style="color:#6366f1;"></i> Acesso Restrito</h1>
+        <p>Insira suas credenciais de administrador</p>
+        
+        <input type="password" id="password" placeholder="Sua senha..." autofocus>
+        <button onclick="doLogin()" id="btn-login">Entrar no Sistema</button>
+        <div id="error-msg"></div>
+    </div>
+
+    <script>
+        async function doLogin() {
+            const pwd = document.getElementById('password').value;
+            const btn = document.getElementById('btn-login');
+            const err = document.getElementById('error-msg');
+            
+            btn.disabled = true; btn.innerText = "Verificando..."; err.style.display = 'none';
+
+            try {
+                const res = await fetch('/login', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({password: pwd})
+                });
+                const data = await res.json();
+                
+                if (data.success) {
+                    window.location.href = '/'; // Redireciona para o app
+                } else {
+                    throw new Error(data.error);
+                }
+            } catch (e) {
+                err.innerText = "Senha incorreta.";
+                err.style.display = 'block';
+                btn.disabled = false; btn.innerText = "Entrar no Sistema";
+            }
+        }
+
+        document.getElementById('password').addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') doLogin();
+        });
+    </script>
+</body>
+</html>

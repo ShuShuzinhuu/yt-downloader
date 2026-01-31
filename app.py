@@ -1,9 +1,8 @@
 import subprocess
 import sys
 import os
-import uuid
 import requests
-from flask import Flask, request, jsonify, render_template, send_file, after_this_request, session
+from flask import Flask, request, jsonify, render_template, send_file, after_this_request, session, redirect, url_for
 from apscheduler.schedulers.background import BackgroundScheduler
 import yt_dlp
 from dotenv import load_dotenv
@@ -12,28 +11,25 @@ load_dotenv()
 
 app = Flask(__name__)
 
-# --- CONFIGURAÇÕES DE SEGURANÇA ---
-# Gere uma chave aleatória para encriptar os cookies da sessão
-app.secret_key = os.getenv("FLASK_SECRET_KEY", "uma_chave_muito_secreta_e_aleatoria")
-ADMIN_PASSWORD = os.getenv("ADMIN_PASSWORD", "admin123") # Senha padrão
-
+# --- CONFIGURAÇÕES ---
+app.secret_key = os.getenv("FLASK_SECRET_KEY", "chave_secreta_aleatoria_para_sessao")
+ADMIN_PASSWORD = os.getenv("ADMIN_PASSWORD", "admin123") 
 CF_SECRET_KEY = os.getenv("CF_SECRET_KEY")
 EXPECTED_HOSTNAME = os.getenv("EXPECTED_HOSTNAME", "127.0.0.1")
 PORT = int(os.getenv("FLASK_PORT", 8022))
 
 progress_store = {}
 
-# ... (Mantenha as funções update_yt_dlp e validate_turnstile iguais) ...
+# --- UPDATER ---
 def update_yt_dlp():
-    try:
-        subprocess.check_call([sys.executable, '-m', 'pip', 'install', '--upgrade', 'yt-dlp'])
-        print("yt-dlp atualizado.")
-    except Exception as e: print(e)
+    try: subprocess.check_call([sys.executable, '-m', 'pip', 'install', '--upgrade', 'yt-dlp'])
+    except: pass
 
 scheduler = BackgroundScheduler()
 scheduler.add_job(func=update_yt_dlp, trigger="interval", hours=24)
 scheduler.start()
 
+# --- FUNÇÕES AUXILIARES ---
 def validate_turnstile(token, ip):
     url = 'https://challenges.cloudflare.com/turnstile/v0/siteverify'
     data = {'secret': CF_SECRET_KEY, 'response': token, 'remoteip': ip}
@@ -49,24 +45,40 @@ def get_ydl_opts():
     if os.path.exists('cookies.txt'): opts['cookiefile'] = 'cookies.txt'
     return opts
 
-# --- ROTAS ---
+# --- ROTAS DE NAVEGAÇÃO ---
 
 @app.route('/')
 def homepage():
+    # Se não tiver sessão, manda pro login
+    if not session.get('logged_in'):
+        return redirect(url_for('login_page'))
     return render_template("index.html")
 
-# Rota de Login (NOVO)
-@app.route('/login', methods=['POST'])
-def login():
-    data = request.json
-    if data.get('password') == ADMIN_PASSWORD:
-        session['logged_in'] = True
-        return jsonify({'success': True})
-    return jsonify({'success': False, 'error': 'Senha incorreta'}), 401
+@app.route('/login', methods=['GET', 'POST'])
+def login_page():
+    # Se já estiver logado, manda pra home
+    if session.get('logged_in'):
+        return redirect(url_for('homepage'))
+        
+    if request.method == 'POST':
+        data = request.json
+        if data.get('password') == ADMIN_PASSWORD:
+            session['logged_in'] = True
+            return jsonify({'success': True})
+        return jsonify({'success': False, 'error': 'Senha incorreta'}), 401
+    
+    return render_template("login.html")
+
+@app.route('/logout')
+def logout():
+    session.clear()
+    return redirect(url_for('login_page'))
+
+# --- ROTAS DA API (PROTEGIDAS) ---
 
 @app.route('/info', methods=['POST'])
 def info():
-    if not session.get('logged_in'): return jsonify({'error': 'Acesso negado. Faça login.'}), 403
+    if not session.get('logged_in'): return jsonify({'error': 'Unauthorized'}), 401
     
     url = request.form.get('url')
     try:
@@ -77,16 +89,12 @@ def info():
 
 @app.route('/progress/<task_id>', methods=['GET'])
 def get_progress(task_id):
-    # Progresso pode ser público ou protegido, deixei público para não quebrar o polling
     return jsonify(progress_store.get(task_id, {'percent': '0%', 'status': 'waiting'}))
 
 @app.route('/download', methods=['POST'])
 def download():
-    if not session.get('logged_in'): return "Não autorizado", 403
+    if not session.get('logged_in'): return "Unauthorized", 401
 
-    # ... (Mantenha toda a lógica de download, validação de captcha e hooks iguais ao anterior) ...
-    # Vou resumir para caber na resposta, mas use a lógica completa da resposta anterior aqui
-    
     token = request.form.get('cf-turnstile-response')
     ip = request.headers.get('CF-Connecting-IP') or request.remote_addr
     valid, msg = validate_turnstile(token, ip)
@@ -127,7 +135,7 @@ def download():
 
             @after_this_request
             def remove_file(res):
-                try:
+                try: 
                     if filename_to_send and os.path.exists(filename_to_send): os.remove(filename_to_send)
                 except: pass
                 return res
