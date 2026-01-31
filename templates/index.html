@@ -213,7 +213,6 @@
 
     <script>
         // --- CONFIGURAÇÃO ---
-        // Adicione sua Site Key aqui
         const SITE_KEY = "0x4AAAAAACC3u2rJ53Q1h0b-"; 
         let turnstileWidgetId = null;
 
@@ -245,17 +244,14 @@
                 document.getElementById('vid-title').innerText = data.title;
                 document.getElementById('vid-thumb').src = data.thumbnail;
                 
-                // Exibe a área de opções
                 document.getElementById('options-area').style.display = 'block';
                 
-                // --- RENDERIZA O TURNSTILE MANUALMENTE (MODO ESCURO) ---
                 if (window.turnstile) {
                     if (turnstileWidgetId) turnstile.remove(turnstileWidgetId);
-                    
                     turnstileWidgetId = turnstile.render('#turnstile-container', {
                         sitekey: SITE_KEY,
                         action: 'download',
-                        theme: 'dark' // Força o tema escuro no captcha
+                        theme: 'dark'
                     });
                 }
 
@@ -270,65 +266,91 @@
 
         function downloadStart() {
             const token = turnstile.getResponse(turnstileWidgetId);
-            if (!token) return alert("Complete o desafio 'Sou humano'.");
+
+            if (!token) {
+                alert("Por favor, complete o desafio 'Sou humano'.");
+                return;
+            }
 
             const url = document.getElementById('url').value;
             const quality = document.getElementById('quality-select').value;
             const taskId = generateUUID();
 
-            // UI: Mostra barra e muda botão
+            // UI
             document.getElementById('progress-container').style.display = 'block';
             const btn = document.getElementById('btn-download');
             btn.disabled = true;
             btn.innerHTML = '<i class="fas fa-cog fa-spin"></i> Processando...';
-            
             const pBar = document.getElementById('progress-bar');
             const statusText = document.getElementById('status-text');
 
-            // --- POLLING INTELIGENTE ---
+            // Variável para rastrear o progresso anterior
+            let lastPercent = 0;
+
             let pollInterval = setInterval(async () => {
                 try {
                     const res = await fetch(`/progress/${taskId}`);
                     const data = await res.json();
                     
-                    // Se der erro no backend
+                    // Converte porcentagem string "50.5%" para numero 50.5
+                    let currentPercentNum = parseFloat(data.percent || "0");
+
                     if (data.status === 'error') {
                         clearInterval(pollInterval);
-                        alert('Erro no servidor: ' + (data.msg || 'Desconhecido'));
+                        alert("Ocorreu um erro no servidor.");
                         resetUI();
-                        return;
                     }
 
                     if (data.percent) {
                         pBar.style.width = data.percent;
                         pBar.innerText = data.percent;
                         
-                        // Atualiza textos
                         if (data.status === 'converting') {
-                             statusText.innerText = 'Convertendo e salvando...';
-                             pBar.style.background = 'linear-gradient(90deg, #3b82f6, #6366f1)';
+                             statusText.innerText = 'Convertendo formato final...';
+                             pBar.style.background = 'linear-gradient(90deg, #3b82f6, #6366f1)'; // Azul
                         } else if (data.status === 'downloading') {
                              statusText.innerText = 'Baixando do YouTube...';
-                        } else if (data.status === 'completed' || data.percent.includes('100%')) {
-                             // --- SUCESSO! ---
-                             clearInterval(pollInterval); // Para de perguntar
-                             statusText.innerText = 'Download iniciado! Verifique seus arquivos.';
-                             pBar.style.background = '#10b981'; // Verde
-                             pBar.innerText = "Concluído!";
-                             
-                             // Reseta o botão após 3 segundos
-                             setTimeout(() => {
-                                 resetUI();
-                                 turnstile.reset(turnstileWidgetId);
-                             }, 3000);
+                             lastPercent = currentPercentNum;
+                        }
+
+                        // CONDIÇÃO DE SUCESSO
+                        // 1. O status é explicitamente 'completed' (graças à mudança no Python)
+                        // 2. OU: Estava em 100% e o backend parou de responder (fallback)
+                        if (data.status === 'completed' || (data.percent.includes('100%'))) {
+                             finishDownload();
+                        }
+                    } else {
+                        // Se o backend retornou vazio, mas a gente já estava quase no fim (>95%), assume que acabou
+                        if (lastPercent > 95) {
+                            finishDownload();
                         }
                     }
-                } catch (e) {
-                    console.log("Erro de conexão no poll", e);
-                }
+                } catch (e) { console.log(e); }
             }, 1000);
 
-            // Envia o formulário (Download real)
+            function finishDownload() {
+                clearInterval(pollInterval);
+                statusText.innerText = 'Download Concluído! Verifique seus arquivos.';
+                pBar.style.width = "100%";
+                pBar.innerText = "100%";
+                pBar.style.background = '#10b981'; // Verde Sucesso
+                
+                btn.innerHTML = '<i class="fas fa-check"></i> Sucesso!';
+                
+                // Reseta a tela após 5 segundos
+                setTimeout(() => { 
+                    resetUI();
+                    turnstile.reset(turnstileWidgetId);
+                }, 5000); 
+            }
+
+            function resetUI() {
+                btn.disabled = false;
+                btn.innerHTML = '<i class="fas fa-download"></i> BAIXAR AGORA';
+                // document.getElementById('progress-container').style.display = 'none';
+            }
+
+            // Envia o formulário
             const form = document.createElement('form');
             form.method = 'POST';
             form.action = '/download';
@@ -343,15 +365,6 @@
             document.body.appendChild(form);
             form.submit();
             document.body.removeChild(form);
-        }
-
-        // Função auxiliar para voltar a tela ao normal
-        function resetUI() {
-            const btn = document.getElementById('btn-download');
-            btn.disabled = false;
-            btn.innerHTML = '<i class="fas fa-download"></i> BAIXAR AGORA';
-            // Opcional: Esconder a barra depois de um tempo
-            // document.getElementById('progress-container').style.display = 'none';
         }
     </script>
 </body>
