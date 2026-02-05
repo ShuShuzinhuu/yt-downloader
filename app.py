@@ -46,12 +46,27 @@ def get_ydl_opts():
         'no_warnings': True, 
         'remote_components': 'ejs:github', 
         'source_address': '0.0.0.0',
-        # --- CORREÇÃO DO ERRO DE FORMATO ---
-        # Simula um cliente Android para evitar bloqueios que escondem os formatos
-        'extractor_args': {'youtube': {'player_client': ['android', 'ios']}},
-        'format': 'best' # Garante um fallback padrão para a rota /info
+        
+        # --- SOLUÇÃO ANTI-BLOQUEIO ---
+        # 1. Tenta simular um navegador desktop (web) primeiro, depois android
+        'extractor_args': {
+            'youtube': {
+                'player_client': ['web', 'android']
+            }
+        },
+        # 2. Adiciona um User-Agent de navegador real
+        'http_headers': {
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+            'Accept-Language': 'en-US,en;q=0.9',
+        },
+        # 3. Garante que na verificação de info ele pegue qualquer coisa que tiver
+        'format': 'best/bestvideo+bestaudio',
     }
-    if os.path.exists('cookies.txt'): opts['cookiefile'] = 'cookies.txt'
+    
+    # Prioridade máxima para os cookies se o arquivo existir
+    if os.path.exists('cookies.txt'):
+        opts['cookiefile'] = 'cookies.txt'
+        
     return opts
 
 # --- ROTAS DE NAVEGAÇÃO ---
