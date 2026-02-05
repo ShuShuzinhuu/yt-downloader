@@ -40,17 +40,18 @@ def validate_turnstile(token, ip):
         return True, "Sucesso"
     except: return False, "Erro conexão"
 
-def get_ydl_info_opts():
+def get_ydl_opts():
     opts = {
         'quiet': False,
         'no_warnings': False,
         'remote_components': ['ejs:github'],
-        'skip_download': True,
-        'extract_flat': False,
+        'js_runtimes': ['node'],   # 👈 ESSENCIAL
+        'cachedir': os.path.join(os.getcwd(), '.yt-dlp-cache'),
     }
     if os.path.exists('cookies.txt'):
         opts['cookiefile'] = 'cookies.txt'
     return opts
+
 
 
 
@@ -92,7 +93,7 @@ def info():
     
     url = request.form.get('url')
     try:
-        with yt_dlp.YoutubeDL(get_ydl_info_opts()) as ydl:
+        with yt_dlp.YoutubeDL(get_ydl_opts()) as ydl:
             info = ydl.extract_info(url, download=False)
             return jsonify({
                 'title': info.get('title'),
@@ -129,7 +130,7 @@ def download():
         elif d['status'] == 'finished':
             progress_store[task_id] = {'percent': '100%', 'status': 'converting'}
 
-    opts = get_ydl_info_opts()
+    opts = get_ydl_opts()
     opts.update({'outtmpl': 'downloads/%(title)s.%(ext)s', 'cachedir': False, 'progress_hooks': [progress_hook]})
 
     if quality == 'audio':
