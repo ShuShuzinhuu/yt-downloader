@@ -47,24 +47,23 @@ def get_ydl_opts():
         'remote_components': 'ejs:github', 
         'source_address': '0.0.0.0',
         
-        # --- SOLUÇÃO ANTI-BLOQUEIO ---
-        # 1. Tenta simular um navegador desktop (web) primeiro, depois android
+        # --- O SEGREDO ESTÁ AQUI ---
+        # Isso instrui o yt-dlp a usar a API de clientes Android e iOS
+        # em vez da API Web (que é onde o bloqueio acontece).
         'extractor_args': {
             'youtube': {
-                'player_client': ['web', 'android']
+                'player_client': ['android', 'ios']
             }
         },
-        # 2. Adiciona um User-Agent de navegador real
+        
+        # Adiciona headers para parecer um navegador real caso o fallback web seja usado
         'http_headers': {
             'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-            'Accept-Language': 'en-US,en;q=0.9',
-        },
-        # 3. Garante que na verificação de info ele pegue qualquer coisa que tiver
-        'format': 'best/bestvideo+bestaudio',
+        }
     }
     
-    # Prioridade máxima para os cookies se o arquivo existir
-    if os.path.exists('cookies.txt'):
+    # Se tiver cookies, usa (ajuda muito contra bloqueios)
+    if os.path.exists('cookies.txt'): 
         opts['cookiefile'] = 'cookies.txt'
         
     return opts
@@ -158,8 +157,9 @@ def download():
             }]
         })
     else:
-        # Lógica de vídeo com fallback (/best) e conversão forçada para MP4
+        # Lógica de vídeo
         opts.update({
+            # Adicionei '/best' no final para evitar o erro se o 1080p falhar
             'format': f'bestvideo[height<={quality}]+bestaudio/best[height<={quality}]/best',
             'merge_output_format': 'mp4',
             'postprocessors': [{
