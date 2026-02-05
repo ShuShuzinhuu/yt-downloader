@@ -46,13 +46,28 @@ def get_ydl_opts():
     opts = {
         'quiet': False,
         'no_warnings': False,
-        'remote_components': ['ejs:github'],
-        'js_runtimes': ['node'],
+
+        # Solver de JS (SABR)
+        'remote_components': ['ejs:github'],   # 👈 formato certo
+        'js_runtimes': {
+            'node': {}
+        },
+
         'cachedir': os.path.join(os.getcwd(), '.yt-dlp-cache'),
+
+        # Hardening contra falhas do YouTube
+        'force_ipv4': True,
+        'extractor_retries': 5,
+        'fragment_retries': 5,
+        'retries': 5,
     }
+
     if os.path.exists('cookies.txt'):
         opts['cookiefile'] = 'cookies.txt'
+
     return opts
+
+
 
 # --- ROTAS ---
 
