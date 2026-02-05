@@ -114,34 +114,71 @@ def download():
             progress_store[task_id] = {'percent': '100%', 'status': 'converting'}
 
     opts = get_ydl_opts()
-    opts.update({'outtmpl': 'downloads/%(title)s.%(ext)s', 'cachedir': False, 'progress_hooks': [progress_hook]})
+    
+    # Adiciona o hook de progresso
+    opts.update({
+        'outtmpl': 'downloads/%(title)s.%(ext)s',
+        'cachedir': False,
+        'progress_hooks': [progress_hook]
+    })
 
     if quality == 'audio':
-        opts.update({'format': 'bestaudio/best', 'postprocessors': [{'key': 'FFmpegExtractAudio', 'preferredcodec': 'mp3', 'preferredquality': '320'}]})
-    elif quality == 'best':
-        opts['format'] = 'bestvideo+bestaudio/best'
+        opts.update({
+            'format': 'bestaudio/best',
+            'postprocessors': [{
+                'key': 'FFmpegExtractAudio',
+                'preferredcodec': 'mp3',
+                'preferredquality': '320'
+            }]
+        })
     else:
-        opts['format'] = f'bestvideo[height<={quality}]+bestaudio/best[height<={quality}]'
+        # --- LÓGICA DE VÍDEO ATUALIZADA ---
+        opts.update({
+            # 1. Tenta baixar separado e juntar. Se falhar, baixa o melhor único (/best)
+            'format': f'bestvideo[height<={quality}]+bestaudio/best[height<={quality}]/best',
+            
+            # 2. FORÇA O CONTAINER FINAL SER MP4
+            'merge_output_format': 'mp4',
+            
+            # 3. GARANTIA EXTRA: Se baixar um arquivo único .webm (fallback), converte para mp4
+            'postprocessors': [{
+                'key': 'FFmpegVideoConvertor',
+                'preferedformat': 'mp4',
+            }]
+        })
 
     try:
         progress_store[task_id] = {'percent': '0%', 'status': 'starting'}
         filename_to_send = None
+        
         with yt_dlp.YoutubeDL(opts) as ydl:
             info = ydl.extract_info(url, download=True)
-            fname = ydl.prepare_filename(info)
-            filename_to_send = os.path.splitext(fname)[0] + ".mp3" if quality == 'audio' else fname
+            filename_original = ydl.prepare_filename(info)
+            
+            # Ajuste de extensão no nome do arquivo para o navegador
+            base_name = os.path.splitext(filename_original)[0]
+            
+            if quality == 'audio':
+                filename_to_send = base_name + ".mp3"
+            else:
+                # Como forçamos a conversão, o arquivo no disco será .mp4
+                filename_to_send = base_name + ".mp4"
             
             progress_store[task_id] = {'percent': '100%', 'status': 'completed'}
 
             @after_this_request
             def remove_file(res):
                 try: 
-                    if filename_to_send and os.path.exists(filename_to_send): os.remove(filename_to_send)
+                    if filename_to_send and os.path.exists(filename_to_send): 
+                        os.remove(filename_to_send)
                 except: pass
                 return res
+            
             return send_file(filename_to_send, as_attachment=True)
+            
     except Exception as e:
         progress_store[task_id] = {'percent': '0%', 'status': 'error'}
+        print(f"ERRO: {e}")
         return str(e), 500
 
 if __name__ == '__main__':
