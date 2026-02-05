@@ -41,7 +41,16 @@ def validate_turnstile(token, ip):
     except: return False, "Erro conexão"
 
 def get_ydl_opts():
-    opts = {'quiet': True, 'no_warnings': True, 'remote_components': 'ejs:github', 'source_address': '0.0.0.0'}
+    opts = {
+        'quiet': True, 
+        'no_warnings': True, 
+        'remote_components': 'ejs:github', 
+        'source_address': '0.0.0.0',
+        # --- CORREÇÃO DO ERRO DE FORMATO ---
+        # Simula um cliente Android para evitar bloqueios que escondem os formatos
+        'extractor_args': {'youtube': {'player_client': ['android', 'ios']}},
+        'format': 'best' # Garante um fallback padrão para a rota /info
+    }
     if os.path.exists('cookies.txt'): opts['cookiefile'] = 'cookies.txt'
     return opts
 
@@ -49,14 +58,12 @@ def get_ydl_opts():
 
 @app.route('/')
 def homepage():
-    # Se não tiver sessão, manda pro login
     if not session.get('logged_in'):
         return redirect(url_for('login_page'))
     return render_template("index.html")
 
 @app.route('/login', methods=['GET', 'POST'])
 def login_page():
-    # Se já estiver logado, manda pra home
     if session.get('logged_in'):
         return redirect(url_for('homepage'))
         
@@ -81,11 +88,16 @@ def info():
     if not session.get('logged_in'): return jsonify({'error': 'Unauthorized'}), 401
     
     url = request.form.get('url')
+    if not url: return jsonify({'error': 'URL vazia'}), 400
+
     try:
+        # Usa as opções padrão com o fix do Android
         with yt_dlp.YoutubeDL(get_ydl_opts()) as ydl:
             info = ydl.extract_info(url, download=False)
             return jsonify({'title': info.get('title'), 'thumbnail': info.get('thumbnail')})
-    except Exception as e: return jsonify({'error': str(e)}), 500
+    except Exception as e:
+        print(f"Erro no /info: {e}")
+        return jsonify({'error': f"Erro ao obter info: {str(e)}"}), 500
 
 @app.route('/progress/<task_id>', methods=['GET'])
 def get_progress(task_id):
@@ -115,7 +127,6 @@ def download():
 
     opts = get_ydl_opts()
     
-    # Adiciona o hook de progresso
     opts.update({
         'outtmpl': 'downloads/%(title)s.%(ext)s',
         'cachedir': False,
@@ -132,15 +143,10 @@ def download():
             }]
         })
     else:
-        # --- LÓGICA DE VÍDEO ATUALIZADA ---
+        # Lógica de vídeo com fallback (/best) e conversão forçada para MP4
         opts.update({
-            # 1. Tenta baixar separado e juntar. Se falhar, baixa o melhor único (/best)
             'format': f'bestvideo[height<={quality}]+bestaudio/best[height<={quality}]/best',
-            
-            # 2. FORÇA O CONTAINER FINAL SER MP4
             'merge_output_format': 'mp4',
-            
-            # 3. GARANTIA EXTRA: Se baixar um arquivo único .webm (fallback), converte para mp4
             'postprocessors': [{
                 'key': 'FFmpegVideoConvertor',
                 'preferedformat': 'mp4',
@@ -155,13 +161,10 @@ def download():
             info = ydl.extract_info(url, download=True)
             filename_original = ydl.prepare_filename(info)
             
-            # Ajuste de extensão no nome do arquivo para o navegador
             base_name = os.path.splitext(filename_original)[0]
-            
             if quality == 'audio':
                 filename_to_send = base_name + ".mp3"
             else:
-                # Como forçamos a conversão, o arquivo no disco será .mp4
                 filename_to_send = base_name + ".mp4"
             
             progress_store[task_id] = {'percent': '100%', 'status': 'completed'}
@@ -178,7 +181,7 @@ def download():
             
     except Exception as e:
         progress_store[task_id] = {'percent': '0%', 'status': 'error'}
-        print(f"ERRO: {e}")
+        print(f"ERRO DOWNLOAD: {e}")
         return str(e), 500
 
 if __name__ == '__main__':
