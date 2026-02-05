@@ -41,9 +41,15 @@ def validate_turnstile(token, ip):
     except: return False, "Erro conexão"
 
 def get_ydl_opts():
-    opts = {'quiet': True, 'no_warnings': True, 'remote_components': 'ejs:github', 'source_address': '0.0.0.0'}
-    if os.path.exists('cookies.txt'): opts['cookiefile'] = 'cookies.txt'
+    opts = {
+        'quiet': False,
+        'no_warnings': True,
+        'remote_components': ['ejs:github'],
+    }
+    if os.path.exists('cookies.txt'):
+        opts['cookiefile'] = 'cookies.txt'
     return opts
+
 
 # --- ROTAS DE NAVEGAÇÃO ---
 
@@ -117,11 +123,26 @@ def download():
     opts.update({'outtmpl': 'downloads/%(title)s.%(ext)s', 'cachedir': False, 'progress_hooks': [progress_hook]})
 
     if quality == 'audio':
-        opts.update({'format': 'bestaudio/best', 'postprocessors': [{'key': 'FFmpegExtractAudio', 'preferredcodec': 'mp3', 'preferredquality': '320'}]})
+        opts.update({
+            'format': 'bestaudio/best',
+            'postprocessors': [
+                {'key': 'FFmpegExtractAudio', 'preferredcodec': 'mp3', 'preferredquality': '320'}
+            ]
+        })
+
     elif quality == 'best':
-        opts['format'] = 'bestvideo+bestaudio/best'
+        opts.update({
+            'format': 'bv*[ext=mp4]+ba[ext=m4a]/b[ext=mp4]/bv*+ba/b',
+            'merge_output_format': 'mp4',   # 👈 força o container final mp4
+        })
+
     else:
-        opts['format'] = f'bestvideo[height<={quality}]+bestaudio/best[height<={quality}]'
+        opts.update({
+            'format': f'bv*[ext=mp4][height<={quality}]+ba[ext=m4a]/b[ext=mp4][height<={quality}]/bv*+ba/b',
+            'merge_output_format': 'mp4',   # 👈 força o container final mp4
+        })
+
+
 
     try:
         progress_store[task_id] = {'percent': '0%', 'status': 'starting'}
