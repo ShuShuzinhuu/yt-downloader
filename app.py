@@ -40,15 +40,18 @@ def validate_turnstile(token, ip):
         return True, "Sucesso"
     except: return False, "Erro conexão"
 
-def get_ydl_opts():
+def get_ydl_info_opts():
     opts = {
         'quiet': False,
-        'no_warnings': True,
+        'no_warnings': False,
         'remote_components': ['ejs:github'],
+        'skip_download': True,
+        'extract_flat': False,
     }
     if os.path.exists('cookies.txt'):
         opts['cookiefile'] = 'cookies.txt'
     return opts
+
 
 
 # --- ROTAS DE NAVEGAÇÃO ---
@@ -84,14 +87,21 @@ def logout():
 
 @app.route('/info', methods=['POST'])
 def info():
-    if not session.get('logged_in'): return jsonify({'error': 'Unauthorized'}), 401
+    if not session.get('logged_in'):
+        return jsonify({'error': 'Unauthorized'}), 401
     
     url = request.form.get('url')
     try:
-        with yt_dlp.YoutubeDL(get_ydl_opts()) as ydl:
+        with yt_dlp.YoutubeDL(get_ydl_info_opts()) as ydl:
             info = ydl.extract_info(url, download=False)
-            return jsonify({'title': info.get('title'), 'thumbnail': info.get('thumbnail')})
-    except Exception as e: return jsonify({'error': str(e)}), 500
+            return jsonify({
+                'title': info.get('title'),
+                'thumbnail': info.get('thumbnail'),
+                'duration': info.get('duration'),
+            })
+    except Exception as e:
+        return jsonify({'error': f'Falha ao obter info do vídeo: {str(e)}'}), 500
+
 
 @app.route('/progress/<task_id>', methods=['GET'])
 def get_progress(task_id):
@@ -119,7 +129,7 @@ def download():
         elif d['status'] == 'finished':
             progress_store[task_id] = {'percent': '100%', 'status': 'converting'}
 
-    opts = get_ydl_opts()
+    opts = get_ydl_info_opts()
     opts.update({'outtmpl': 'downloads/%(title)s.%(ext)s', 'cachedir': False, 'progress_hooks': [progress_hook]})
 
     if quality == 'audio':
