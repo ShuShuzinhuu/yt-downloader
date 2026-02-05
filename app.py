@@ -15,15 +15,16 @@ app = Flask(__name__)
 app.secret_key = os.getenv("FLASK_SECRET_KEY", "chave_secreta_aleatoria_para_sessao")
 ADMIN_PASSWORD = os.getenv("ADMIN_PASSWORD", "admin123") 
 CF_SECRET_KEY = os.getenv("CF_SECRET_KEY")
-EXPECTED_HOSTNAME = os.getenv("EXPECTED_HOSTNAME", "127.0.0.1")
 PORT = int(os.getenv("FLASK_PORT", 8022))
 
 progress_store = {}
 
 # --- UPDATER ---
 def update_yt_dlp():
-    try: subprocess.check_call([sys.executable, '-m', 'pip', 'install', '--upgrade', 'yt-dlp'])
-    except: pass
+    try:
+        subprocess.check_call([sys.executable, '-m', 'pip', 'install', '--upgrade', 'yt-dlp'])
+    except:
+        pass
 
 scheduler = BackgroundScheduler()
 scheduler.add_job(func=update_yt_dlp, trigger="interval", hours=24)
@@ -35,38 +36,34 @@ def validate_turnstile(token, ip):
     data = {'secret': CF_SECRET_KEY, 'response': token, 'remoteip': ip}
     try:
         res = requests.post(url, data=data, timeout=5).json()
-        if not res.get('success'): return False, "Captcha inválido"
-        if res.get('action') != 'download': return False, "Ação inválida"
+        if not res.get('success'):
+            return False, "Captcha inválido"
         return True, "Sucesso"
-    except: return False, "Erro conexão"
+    except:
+        return False, "Erro conexão"
 
 def get_ydl_opts():
     opts = {
         'quiet': False,
         'no_warnings': False,
         'remote_components': ['ejs:github'],
-        'js_runtimes': ['node'],   # 👈 ESSENCIAL
+        'js_runtimes': ['node'],
         'cachedir': os.path.join(os.getcwd(), '.yt-dlp-cache'),
     }
     if os.path.exists('cookies.txt'):
         opts['cookiefile'] = 'cookies.txt'
     return opts
 
-
-
-
-# --- ROTAS DE NAVEGAÇÃO ---
+# --- ROTAS ---
 
 @app.route('/')
 def homepage():
-    # Se não tiver sessão, manda pro login
     if not session.get('logged_in'):
         return redirect(url_for('login_page'))
     return render_template("index.html")
 
 @app.route('/login', methods=['GET', 'POST'])
 def login_page():
-    # Se já estiver logado, manda pra home
     if session.get('logged_in'):
         return redirect(url_for('homepage'))
         
@@ -83,8 +80,6 @@ def login_page():
 def logout():
     session.clear()
     return redirect(url_for('login_page'))
-
-# --- ROTAS DA API (PROTEGIDAS) ---
 
 @app.route('/info', methods=['POST'])
 def info():
@@ -103,25 +98,26 @@ def info():
     except Exception as e:
         return jsonify({'error': f'Falha ao obter info do vídeo: {str(e)}'}), 500
 
-
 @app.route('/progress/<task_id>', methods=['GET'])
 def get_progress(task_id):
     return jsonify(progress_store.get(task_id, {'percent': '0%', 'status': 'waiting'}))
 
 @app.route('/download', methods=['POST'])
 def download():
-    if not session.get('logged_in'): return "Unauthorized", 401
+    if not session.get('logged_in'):
+        return "Unauthorized", 401
 
     token = request.form.get('cf-turnstile-response')
     ip = request.headers.get('CF-Connecting-IP') or request.remote_addr
     valid, msg = validate_turnstile(token, ip)
-    if not valid: return f"Erro: {msg}", 403
+    if not valid:
+        return f"Erro: {msg}", 403
 
     url = request.form.get('url')
     quality = request.form.get('quality')
     task_id = request.form.get('task_id')
-    
-    if not os.path.exists('downloads'): os.makedirs('downloads')
+
+    os.makedirs('downloads', exist_ok=True)
 
     def progress_hook(d):
         if d['status'] == 'downloading':
@@ -131,7 +127,10 @@ def download():
             progress_store[task_id] = {'percent': '100%', 'status': 'converting'}
 
     opts = get_ydl_opts()
-    opts.update({'outtmpl': 'downloads/%(title)s.%(ext)s', 'cachedir': False, 'progress_hooks': [progress_hook]})
+    opts.update({
+        'outtmpl': 'downloads/%(title)s.%(ext)s',
+        'progress_hooks': [progress_hook]
+    })
 
     if quality == 'audio':
         opts.update({
@@ -140,38 +139,38 @@ def download():
                 {'key': 'FFmpegExtractAudio', 'preferredcodec': 'mp3', 'preferredquality': '320'}
             ]
         })
-
-    elif quality == 'best':
-        opts.update({
-            'format': 'bv*[ext=mp4]+ba[ext=m4a]/b[ext=mp4]/bv*+ba/b',
-            'merge_output_format': 'mp4',   # 👈 força o container final mp4
-        })
-
     else:
         opts.update({
-            'format': f'bv*[ext=mp4][height<={quality}]+ba[ext=m4a]/b[ext=mp4][height<={quality}]/bv*+ba/b',
-            'merge_output_format': 'mp4',   # 👈 força o container final mp4
+            'format': 'bv*[ext=mp4]+ba[ext=m4a]/b[ext=mp4]/best',
+            'merge_output_format': 'mp4',
         })
-
-
 
     try:
         progress_store[task_id] = {'percent': '0%', 'status': 'starting'}
-        filename_to_send = None
+
         with yt_dlp.YoutubeDL(opts) as ydl:
             info = ydl.extract_info(url, download=True)
             fname = ydl.prepare_filename(info)
-            filename_to_send = os.path.splitext(fname)[0] + ".mp3" if quality == 'audio' else fname
-            
+
+            filename_to_send = (
+                os.path.splitext(fname)[0] + ".mp3"
+                if quality == 'audio'
+                else os.path.splitext(fname)[0] + ".mp4"
+            )
+
             progress_store[task_id] = {'percent': '100%', 'status': 'completed'}
 
             @after_this_request
             def remove_file(res):
-                try: 
-                    if filename_to_send and os.path.exists(filename_to_send): os.remove(filename_to_send)
-                except: pass
+                try:
+                    if os.path.exists(filename_to_send):
+                        os.remove(filename_to_send)
+                except:
+                    pass
                 return res
+
             return send_file(filename_to_send, as_attachment=True)
+
     except Exception as e:
         progress_store[task_id] = {'percent': '0%', 'status': 'error'}
         return str(e), 500
