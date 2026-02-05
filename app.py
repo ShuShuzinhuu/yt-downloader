@@ -41,43 +41,22 @@ def validate_turnstile(token, ip):
     except: return False, "Erro conexão"
 
 def get_ydl_opts():
-    opts = {
-        'quiet': True, 
-        'no_warnings': True, 
-        'remote_components': 'ejs:github', 
-        'source_address': '0.0.0.0',
-        
-        # --- O SEGREDO ESTÁ AQUI ---
-        # Isso instrui o yt-dlp a usar a API de clientes Android e iOS
-        # em vez da API Web (que é onde o bloqueio acontece).
-        'extractor_args': {
-            'youtube': {
-                'player_client': ['android', 'ios']
-            }
-        },
-        
-        # Adiciona headers para parecer um navegador real caso o fallback web seja usado
-        'http_headers': {
-            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-        }
-    }
-    
-    # Se tiver cookies, usa (ajuda muito contra bloqueios)
-    if os.path.exists('cookies.txt'): 
-        opts['cookiefile'] = 'cookies.txt'
-        
+    opts = {'quiet': True, 'no_warnings': True, 'remote_components': 'ejs:github', 'source_address': '0.0.0.0'}
+    if os.path.exists('cookies.txt'): opts['cookiefile'] = 'cookies.txt'
     return opts
 
 # --- ROTAS DE NAVEGAÇÃO ---
 
 @app.route('/')
 def homepage():
+    # Se não tiver sessão, manda pro login
     if not session.get('logged_in'):
         return redirect(url_for('login_page'))
     return render_template("index.html")
 
 @app.route('/login', methods=['GET', 'POST'])
 def login_page():
+    # Se já estiver logado, manda pra home
     if session.get('logged_in'):
         return redirect(url_for('homepage'))
         
@@ -102,16 +81,11 @@ def info():
     if not session.get('logged_in'): return jsonify({'error': 'Unauthorized'}), 401
     
     url = request.form.get('url')
-    if not url: return jsonify({'error': 'URL vazia'}), 400
-
     try:
-        # Usa as opções padrão com o fix do Android
         with yt_dlp.YoutubeDL(get_ydl_opts()) as ydl:
             info = ydl.extract_info(url, download=False)
             return jsonify({'title': info.get('title'), 'thumbnail': info.get('thumbnail')})
-    except Exception as e:
-        print(f"Erro no /info: {e}")
-        return jsonify({'error': f"Erro ao obter info: {str(e)}"}), 500
+    except Exception as e: return jsonify({'error': str(e)}), 500
 
 @app.route('/progress/<task_id>', methods=['GET'])
 def get_progress(task_id):
@@ -140,63 +114,34 @@ def download():
             progress_store[task_id] = {'percent': '100%', 'status': 'converting'}
 
     opts = get_ydl_opts()
-    
-    opts.update({
-        'outtmpl': 'downloads/%(title)s.%(ext)s',
-        'cachedir': False,
-        'progress_hooks': [progress_hook]
-    })
+    opts.update({'outtmpl': 'downloads/%(title)s.%(ext)s', 'cachedir': False, 'progress_hooks': [progress_hook]})
 
     if quality == 'audio':
-        opts.update({
-            'format': 'bestaudio/best',
-            'postprocessors': [{
-                'key': 'FFmpegExtractAudio',
-                'preferredcodec': 'mp3',
-                'preferredquality': '320'
-            }]
-        })
+        opts.update({'format': 'bestaudio/best', 'postprocessors': [{'key': 'FFmpegExtractAudio', 'preferredcodec': 'mp3', 'preferredquality': '320'}]})
+    elif quality == 'best':
+        opts['format'] = 'bestvideo+bestaudio/best'
     else:
-        # Lógica de vídeo
-        opts.update({
-            # Adicionei '/best' no final para evitar o erro se o 1080p falhar
-            'format': f'bestvideo[height<={quality}]+bestaudio/best[height<={quality}]/best',
-            'merge_output_format': 'mp4',
-            'postprocessors': [{
-                'key': 'FFmpegVideoConvertor',
-                'preferedformat': 'mp4',
-            }]
-        })
+        opts['format'] = f'bestvideo[height<={quality}]+bestaudio/best[height<={quality}]'
 
     try:
         progress_store[task_id] = {'percent': '0%', 'status': 'starting'}
         filename_to_send = None
-        
         with yt_dlp.YoutubeDL(opts) as ydl:
             info = ydl.extract_info(url, download=True)
-            filename_original = ydl.prepare_filename(info)
-            
-            base_name = os.path.splitext(filename_original)[0]
-            if quality == 'audio':
-                filename_to_send = base_name + ".mp3"
-            else:
-                filename_to_send = base_name + ".mp4"
+            fname = ydl.prepare_filename(info)
+            filename_to_send = os.path.splitext(fname)[0] + ".mp3" if quality == 'audio' else fname
             
             progress_store[task_id] = {'percent': '100%', 'status': 'completed'}
 
             @after_this_request
             def remove_file(res):
                 try: 
-                    if filename_to_send and os.path.exists(filename_to_send): 
-                        os.remove(filename_to_send)
+                    if filename_to_send and os.path.exists(filename_to_send): os.remove(filename_to_send)
                 except: pass
                 return res
-            
             return send_file(filename_to_send, as_attachment=True)
-            
     except Exception as e:
         progress_store[task_id] = {'percent': '0%', 'status': 'error'}
-        print(f"ERRO DOWNLOAD: {e}")
         return str(e), 500
 
 if __name__ == '__main__':
