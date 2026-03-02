@@ -4,17 +4,16 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>YT Downloader</title>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <script src="https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit"></script>
     
     <style>
-        /* --- RESET --- */
         * { box-sizing: border-box; margin: 0; padding: 0; outline: none; }
         
         body { 
-            font-family: 'Inter', sans-serif; 
-            background: #0f172a; 
+            font-family: 'Poppins', sans-serif; 
+            background: radial-gradient(circle at top, #020617, #0f172a); 
             min-height: 100vh; 
             display: flex; 
             align-items: center; 
@@ -23,135 +22,82 @@
             color: #e2e8f0;
         }
 
-        /* --- CARD --- */
         .container { 
-            background: #1e293b;
+            background: rgba(30, 41, 59, 0.4);
+            backdrop-filter: blur(15px);
             padding: 24px; 
-            border-radius: 20px; /* Bordas mais arredondadas */
+            border-radius: 20px; 
             width: 100%; 
-            max-width: 420px; /* Um pouco mais compacto na largura */
-            border: 1px solid #334155;
-            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.3), 0 10px 10px -5px rgba(0, 0, 0, 0.2);
+            max-width: 420px; 
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.3);
         }
 
-        /* --- HEADER --- */
-        .header-row {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 18px;
-        }
-
+        .header-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 18px; }
         h1 { font-size: 16px; font-weight: 600; color: #f8fafc; letter-spacing: -0.5px; }
         h1 i { color: #ff4444; margin-right: 6px; }
 
         .logout-btn {
-            font-size: 12px;
-            color: #64748b;
-            padding: 6px 10px;
-            border-radius: 8px;
-            background: rgba(255,255,255,0.03);
-            transition: 0.2s;
-            text-decoration: none;
+            font-size: 12px; color: #64748b; padding: 6px 10px; border-radius: 8px;
+            background: rgba(255,255,255,0.03); transition: 0.2s; text-decoration: none;
         }
         .logout-btn:hover { background: rgba(239, 68, 68, 0.2); color: #ef4444; }
 
-        /* --- INPUT --- */
-        .input-group {
-            position: relative;
-            margin-bottom: 0; /* Remove margem pois o loader/options controlam o espaço */
-        }
+        .input-group { position: relative; margin-bottom: 0; }
 
         input[type="text"] { 
-            width: 100%;
-            padding: 14px 50px 14px 16px; /* Espaço para o botão dentro do input */
-            border: 1px solid #334155; 
-            background-color: #0f172a; 
-            color: #fff; 
-            border-radius: 12px; 
-            font-size: 14px;
-            transition: border-color 0.2s;
+            width: 100%; padding: 14px 50px 14px 16px; 
+            border: 1px solid #334155; background-color: #0f172a; 
+            color: #fff; border-radius: 12px; font-size: 14px; transition: border-color 0.2s;
         }
-        input:focus { border-color: #3b82f6; }
+        input:focus { border-color: #6366f1; }
         
-        /* Botão "Ghost" dentro do input */
         button#btn-check {
-            position: absolute;
-            right: 6px;
-            top: 6px;
-            bottom: 6px;
-            width: 40px;
-            background: #3b82f6;
-            border-radius: 8px;
-            border: none;
-            color: white;
-            cursor: pointer;
-            font-size: 14px;
-            transition: background 0.2s;
+            position: absolute; right: 6px; top: 6px; bottom: 6px; width: 40px;
+            background: #3b82f6; border-radius: 8px; border: none; color: white;
+            cursor: pointer; font-size: 14px; transition: background 0.2s;
             display: flex; align-items: center; justify-content: center;
         }
         button#btn-check:hover { background: #2563eb; }
         button#btn-check:disabled { background: #334155; color: #94a3b8; }
 
-        /* --- AREA DE OPÇÕES --- */
         #options-area { display: none; margin-top: 20px; animation: slideDown 0.3s ease; }
         @keyframes slideDown { from { opacity: 0; transform: translateY(-10px); } to { opacity: 1; transform: translateY(0); } }
 
-        /* THUMBNAIL COMPLETA (Ajuste solicitado) */
         img#vid-thumb { 
-            width: 100%; 
-            height: auto; /* Altura automática para não cortar */
-            aspect-ratio: 16/9; /* Mantém proporção de vídeo */
-            border-radius: 12px; 
-            margin-bottom: 12px; 
-            border: 1px solid rgba(255,255,255,0.1);
-            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.3);
+            width: 100%; height: auto; aspect-ratio: 16/9; 
+            border-radius: 12px; margin-bottom: 12px; 
+            border: 1px solid rgba(255,255,255,0.1); box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.3);
         }
 
         h3#vid-title { 
-            font-size: 13px; 
-            font-weight: 500;
-            color: #cbd5e1; 
-            margin-bottom: 12px; 
-            line-height: 1.4;
-            display: -webkit-box;
-            -webkit-line-clamp: 2; /* Máximo 2 linhas */
-            -webkit-box-orient: vertical;
-            overflow: hidden;
+            font-size: 13px; font-weight: 500; color: #cbd5e1; margin-bottom: 12px; 
+            line-height: 1.4; display: -webkit-box; -webkit-line-clamp: 2; 
+            -webkit-box-orient: vertical; overflow: hidden;
         }
 
         select { 
-            width: 100%; padding: 12px; 
-            border: 1px solid #334155; 
-            background: #0f172a; 
-            color: #fff; 
-            border-radius: 10px; 
-            font-size: 13px; 
-            margin-bottom: 12px;
-            cursor: pointer;
+            width: 100%; padding: 12px; border: 1px solid #334155; 
+            background: #0f172a; color: #fff; border-radius: 10px; 
+            font-size: 13px; margin-bottom: 12px; cursor: pointer;
         }
 
         button#btn-download { 
             width: 100%; padding: 14px; border: none; border-radius: 10px; 
             background: linear-gradient(135deg, #10b981 0%, #059669 100%);
-            color: white; font-weight: 600; font-size: 14px; 
-            cursor: pointer; margin-top: 5px;
-            box-shadow: 0 4px 6px -1px rgba(16, 185, 129, 0.2);
-            transition: transform 0.1s;
+            color: white; font-weight: 600; font-size: 14px; cursor: pointer; 
+            margin-top: 5px; box-shadow: 0 4px 6px -1px rgba(16, 185, 129, 0.2); transition: transform 0.1s;
         }
         button#btn-download:active { transform: scale(0.98); }
         button:disabled { background: #334155; color: #64748b; cursor: not-allowed; box-shadow: none; }
 
-        /* --- LOADER & PROGRESS --- */
         .loader-spinner { border: 2px solid #334155; border-top: 2px solid #3b82f6; border-radius: 50%; width: 20px; height: 20px; animation: spin 0.8s linear infinite; }
         @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
 
         .progress-container { display: none; margin-top: 12px; background-color: #334155; border-radius: 6px; overflow: hidden; height: 6px; }
-        .progress-bar { height: 100%; width: 0%; background: #10b981; transition: width 0.4s ease; }
+        .progress-bar { height: 100%; width: 0%; background: #10b981; transition: width 0.4s ease, background-color 0.3s; }
         
         #status-text { font-size: 11px; color: #64748b; margin-top: 6px; text-align: center; }
-        
-        /* Ajuste do Captcha para não quebrar o layout compacto */
         #turnstile-container { margin: 10px auto; display: flex; justify-content: center; height: 65px; transform: scale(0.85); transform-origin: center; }
     </style>
 </head>
@@ -160,11 +106,11 @@
     <div class="container">
         <div class="header-row">
             <h1><i class="fab fa-youtube"></i>YT Downloader Private</h1>
-            <a href="/logout" class="logout-btn"><i class="fas fa-sign-out-alt"></i></a>
+            <a href="/logout" class="logout-btn"><i class="fas fa-sign-out-alt"></i> Sair</a>
         </div>
         
         <div class="input-group">
-            <input type="text" id="url" placeholder="Cole o link do YouTube...">
+            <input type="text" id="url" placeholder="Cole o link do YouTube..." autofocus>
             <button onclick="checkVideo()" id="btn-check">
                 <i class="fas fa-search"></i>
             </button>
@@ -198,6 +144,39 @@
         const SITE_KEY = "0x4AAAAAACC3u2rJ53Q1h0b-"; 
         let turnstileWidgetId = null;
 
+        // --- SISTEMA DE AUTO-DETECTAR LINK ---
+        const urlInput = document.getElementById('url');
+        let typingTimer;
+        let lastUrl = '';
+
+        urlInput.addEventListener('input', function() {
+            clearTimeout(typingTimer);
+            const val = this.value.trim();
+            
+            // Se o link for do YouTube e for diferente do último verificado, busca automaticamente
+            if (val !== lastUrl && (val.includes('youtube.com') || val.includes('youtu.be'))) {
+                typingTimer = setTimeout(() => {
+                    lastUrl = val;
+                    checkVideo();
+                }, 500); // Aguarda meio segundo para o usuário terminar de colar/digitar
+            }
+            
+            // Se o campo for esvaziado, limpa a tela automaticamente
+            if (val === '') {
+                document.getElementById('options-area').style.display = 'none';
+                lastUrl = '';
+            }
+        });
+
+        // Permite apertar 'Enter' para buscar manualmente, caso precise
+        urlInput.addEventListener('keydown', function(e) {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                checkVideo();
+            }
+        });
+        // ------------------------------------
+
         function generateUUID() {
             return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
                 var r = Math.random() * 16 | 0, v = c == 'x' ? r : (r & 0x3 | 0x8);
@@ -210,10 +189,12 @@
             if (!url) return alert('Cole um link!');
 
             const btnCheck = document.getElementById('btn-check');
-            const originalIcon = btnCheck.innerHTML;
             
+            // Evita rodar duas vezes ao mesmo tempo
+            if(btnCheck.disabled) return; 
+
             btnCheck.disabled = true;
-            btnCheck.innerHTML = '<div class="loader-spinner"></div>'; // Loader dentro do botão
+            btnCheck.innerHTML = '<div class="loader-spinner"></div>';
 
             try {
                 const response = await fetch('/info', {
@@ -233,7 +214,6 @@
                 document.getElementById('vid-title').innerText = data.title;
                 document.getElementById('vid-thumb').src = data.thumbnail;
                 
-                // Limpa UI anterior se houver
                 document.getElementById('progress-container').style.display = 'none';
                 document.getElementById('status-text').innerText = '';
                 document.getElementById('btn-download').disabled = false;
@@ -252,6 +232,7 @@
 
             } catch (e) {
                 alert('Erro: ' + e.message);
+                lastUrl = ''; // Permite tentar de novo
             } finally {
                 btnCheck.disabled = false;
                 btnCheck.innerHTML = '<i class="fas fa-search"></i>';
@@ -272,12 +253,25 @@
             btn.innerHTML = 'Processando...';
             const pBar = document.getElementById('progress-bar');
             const statusText = document.getElementById('status-text');
+            
+            // Reseta cores caso tenha dado erro antes
+            pBar.style.background = '#10b981';
 
             let pollInterval = setInterval(async () => {
                 try {
                     const res = await fetch(`/progress/${taskId}`);
                     const data = await res.json();
                     
+                    if (data.status === 'error') {
+                        clearInterval(pollInterval);
+                        statusText.innerText = 'Falha no download. Verifique o link.';
+                        pBar.style.background = '#ef4444'; // Fica vermelho
+                        btn.innerHTML = 'Tentar Novamente';
+                        btn.disabled = false;
+                        if (window.turnstile) turnstile.reset(turnstileWidgetId);
+                        return;
+                    }
+
                     if (data.percent) {
                         pBar.style.width = data.percent;
                         if (data.status === 'converting') {
@@ -290,15 +284,12 @@
                              clearInterval(pollInterval);
                              statusText.innerText = 'Download iniciado!';
                              pBar.style.width = "100%";
-                             pBar.style.background = '#10b981';
                              btn.innerHTML = 'Sucesso!';
                              
                              setTimeout(() => { 
                                  btn.disabled = false; 
                                  btn.innerHTML = 'BAIXAR OUTRO';
-                                 turnstile.reset(turnstileWidgetId); 
-                                 // Opcional: limpar campo
-                                 // document.getElementById('url').value = '';
+                                 if (window.turnstile) turnstile.reset(turnstileWidgetId); 
                             }, 4000); 
                         }
                     } 

@@ -1,3 +1,5 @@
+from dotenv import load_dotenv
+load_dotenv()
 import subprocess
 import sys
 import os
@@ -5,9 +7,7 @@ import requests
 from flask import Flask, request, jsonify, render_template, send_file, after_this_request, session, redirect, url_for
 from apscheduler.schedulers.background import BackgroundScheduler
 import yt_dlp
-from dotenv import load_dotenv
 
-load_dotenv()
 
 app = Flask(__name__)
 
@@ -32,6 +32,7 @@ scheduler.start()
 
 # --- FUNÇÕES AUXILIARES ---
 def validate_turnstile(token, ip):
+    if not CF_SECRET_KEY: return True, "Sucesso"
     url = 'https://challenges.cloudflare.com/turnstile/v0/siteverify'
     data = {'secret': CF_SECRET_KEY, 'response': token, 'remoteip': ip}
     try:
@@ -46,31 +47,19 @@ def get_ydl_opts():
     opts = {
         'quiet': False,
         'no_warnings': False,
-
-        # Solver de JS (SABR)
-        'remote_components': ['ejs:github'],   # 👈 formato certo
-        'js_runtimes': {
-            'node': {}
-        },
-
+        'remote_components': ['ejs:github'],
+        'js_runtimes': {'node': {}},
         'cachedir': os.path.join(os.getcwd(), '.yt-dlp-cache'),
-
-        # Hardening contra falhas do YouTube
         'force_ipv4': True,
         'extractor_retries': 5,
         'fragment_retries': 5,
         'retries': 5,
     }
-
     if os.path.exists('cookies.txt'):
         opts['cookiefile'] = 'cookies.txt'
-
     return opts
 
-
-
 # --- ROTAS ---
-
 @app.route('/')
 def homepage():
     if not session.get('logged_in'):
@@ -111,7 +100,7 @@ def info():
                 'duration': info.get('duration'),
             })
     except Exception as e:
-        return jsonify({'error': f'Falha ao obter info do vídeo: {str(e)}'}), 500
+        return jsonify({'error': f'Falha ao obter info: {str(e)}'}), 500
 
 @app.route('/progress/<task_id>', methods=['GET'])
 def get_progress(task_id):
@@ -138,6 +127,8 @@ def download():
         if d['status'] == 'downloading':
             p = d.get('_percent_str', '0%').replace('\x1b[0;94m', '').replace('\x1b[0m', '')
             progress_store[task_id] = {'percent': p, 'status': 'downloading'}
+        elif d['status'] == 'error':
+            progress_store[task_id] = {'percent': '0%', 'status': 'error'}
         elif d['status'] == 'finished':
             progress_store[task_id] = {'percent': '100%', 'status': 'converting'}
 
@@ -150,9 +141,7 @@ def download():
     if quality == 'audio':
         opts.update({
             'format': 'bestaudio/best',
-            'postprocessors': [
-                {'key': 'FFmpegExtractAudio', 'preferredcodec': 'mp3', 'preferredquality': '320'}
-            ]
+            'postprocessors': [{'key': 'FFmpegExtractAudio', 'preferredcodec': 'mp3', 'preferredquality': '320'}]
         })
     else:
         opts.update({
@@ -177,11 +166,11 @@ def download():
 
             @after_this_request
             def remove_file(res):
+                # Limpeza dupla: remove o arquivo convertido E o original
                 try:
-                    if os.path.exists(filename_to_send):
-                        os.remove(filename_to_send)
-                except:
-                    pass
+                    if os.path.exists(filename_to_send): os.remove(filename_to_send)
+                    if os.path.exists(fname) and fname != filename_to_send: os.remove(fname)
+                except: pass
                 return res
 
             return send_file(filename_to_send, as_attachment=True)
@@ -191,4 +180,4 @@ def download():
         return str(e), 500
 
 if __name__ == '__main__':
-    app.run(host="127.0.0.1", port=PORT, debug=True, threaded=True)
+    app.run(host="127.0.0.1", port=PORT, debug=False, threaded=True)
