@@ -76,6 +76,20 @@
             -webkit-box-orient: vertical; overflow: hidden;
         }
 
+        /* --- CAIXA DE PLAYLIST --- */
+        .playlist-box {
+            background: rgba(59, 130, 246, 0.1); border: 1px solid rgba(59, 130, 246, 0.3);
+            padding: 12px; border-radius: 10px; margin-bottom: 12px; display: none; 
+        }
+        .playlist-box p { font-size: 12px; color: #93c5fd; margin-bottom: 8px; font-weight: 500;}
+        .radio-group { display: flex; gap: 10px; }
+        .radio-label { 
+            flex: 1; font-size: 12px; cursor: pointer; display: flex; align-items: center; gap: 6px; 
+            background: #0f172a; padding: 8px; border-radius: 8px; border: 1px solid #334155; transition: 0.2s;
+        }
+        .radio-label:hover { border-color: #6366f1; }
+        .radio-label input { accent-color: #3b82f6; }
+
         select { 
             width: 100%; padding: 12px; border: 1px solid #334155; 
             background: #0f172a; color: #fff; border-radius: 10px; 
@@ -120,6 +134,18 @@
             <img id="vid-thumb" src="">
             <h3 id="vid-title"></h3>
             
+            <div class="playlist-box" id="playlist-box">
+                <p><i class="fas fa-list"></i> Playlist Detectada. O que baixar?</p>
+                <div class="radio-group">
+                    <label class="radio-label">
+                        <input type="radio" name="dl_mode" value="video" checked> Apenas o Vídeo
+                    </label>
+                    <label class="radio-label">
+                        <input type="radio" name="dl_mode" value="playlist"> Playlist (ZIP)
+                    </label>
+                </div>
+            </div>
+
             <select id="quality-select">
                 <option value="best">🌟 Melhor Qualidade Disponível(4K)</option> 
                 <option value="1080">📺 Full HD (1080p)</option>
@@ -144,7 +170,6 @@
         const SITE_KEY = "0x4AAAAAACC3u2rJ53Q1h0b-"; 
         let turnstileWidgetId = null;
 
-        // --- SISTEMA DE AUTO-DETECTAR LINK ---
         const urlInput = document.getElementById('url');
         let typingTimer;
         let lastUrl = '';
@@ -153,29 +178,25 @@
             clearTimeout(typingTimer);
             const val = this.value.trim();
             
-            // Se o link for do YouTube e for diferente do último verificado, busca automaticamente
             if (val !== lastUrl && (val.includes('youtube.com') || val.includes('youtu.be'))) {
                 typingTimer = setTimeout(() => {
                     lastUrl = val;
                     checkVideo();
-                }, 500); // Aguarda meio segundo para o usuário terminar de colar/digitar
+                }, 500); 
             }
             
-            // Se o campo for esvaziado, limpa a tela automaticamente
             if (val === '') {
                 document.getElementById('options-area').style.display = 'none';
                 lastUrl = '';
             }
         });
 
-        // Permite apertar 'Enter' para buscar manualmente, caso precise
         urlInput.addEventListener('keydown', function(e) {
             if (e.key === 'Enter') {
                 e.preventDefault();
                 checkVideo();
             }
         });
-        // ------------------------------------
 
         function generateUUID() {
             return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
@@ -189,8 +210,6 @@
             if (!url) return alert('Cole um link!');
 
             const btnCheck = document.getElementById('btn-check');
-            
-            // Evita rodar duas vezes ao mesmo tempo
             if(btnCheck.disabled) return; 
 
             btnCheck.disabled = true;
@@ -214,6 +233,10 @@
                 document.getElementById('vid-title').innerText = data.title;
                 document.getElementById('vid-thumb').src = data.thumbnail;
                 
+                // Mágica da Playlist: Mostra a caixa se achar "list=" no link
+                const isPlaylist = url.includes('list=');
+                document.getElementById('playlist-box').style.display = isPlaylist ? 'block' : 'none';
+                
                 document.getElementById('progress-container').style.display = 'none';
                 document.getElementById('status-text').innerText = '';
                 document.getElementById('btn-download').disabled = false;
@@ -232,7 +255,7 @@
 
             } catch (e) {
                 alert('Erro: ' + e.message);
-                lastUrl = ''; // Permite tentar de novo
+                lastUrl = ''; 
             } finally {
                 btnCheck.disabled = false;
                 btnCheck.innerHTML = '<i class="fas fa-search"></i>';
@@ -245,6 +268,9 @@
 
             const url = document.getElementById('url').value;
             const quality = document.getElementById('quality-select').value;
+            
+            // Pega se é pra baixar vídeo único ou playlist
+            const dlMode = document.querySelector('input[name="dl_mode"]:checked') ? document.querySelector('input[name="dl_mode"]:checked').value : 'video';
             const taskId = generateUUID();
 
             document.getElementById('progress-container').style.display = 'block';
@@ -254,7 +280,6 @@
             const pBar = document.getElementById('progress-bar');
             const statusText = document.getElementById('status-text');
             
-            // Reseta cores caso tenha dado erro antes
             pBar.style.background = '#10b981';
 
             let pollInterval = setInterval(async () => {
@@ -265,7 +290,7 @@
                     if (data.status === 'error') {
                         clearInterval(pollInterval);
                         statusText.innerText = 'Falha no download. Verifique o link.';
-                        pBar.style.background = '#ef4444'; // Fica vermelho
+                        pBar.style.background = '#ef4444'; 
                         btn.innerHTML = 'Tentar Novamente';
                         btn.disabled = false;
                         if (window.turnstile) turnstile.reset(turnstileWidgetId);
@@ -275,15 +300,20 @@
                     if (data.percent) {
                         pBar.style.width = data.percent;
                         if (data.status === 'converting') {
-                             statusText.innerText = 'Convertendo vídeo...';
+                             statusText.innerText = 'Convertendo...';
                         } else if (data.status === 'downloading') {
                              statusText.innerText = `Baixando... ${data.percent}`;
+                        } else if (data.status === 'zipping') {
+                             statusText.innerText = 'Compactando Playlist (ZIP)...';
+                             pBar.style.background = '#f59e0b'; // Fica amarelo/laranja durante o ZIP
+                             pBar.style.width = "100%";
                         }
                         
-                        if (data.status === 'completed' || data.percent.includes('100%')) {
+                        if (data.status === 'completed' || (data.percent.includes('100%') && data.status !== 'zipping' && data.status !== 'converting')) {
                              clearInterval(pollInterval);
                              statusText.innerText = 'Download iniciado!';
                              pBar.style.width = "100%";
+                             pBar.style.background = '#10b981';
                              btn.innerHTML = 'Sucesso!';
                              
                              setTimeout(() => { 
@@ -299,7 +329,14 @@
             const form = document.createElement('form');
             form.method = 'POST';
             form.action = '/download';
-            const fields = {url: url, quality: quality, task_id: taskId, 'cf-turnstile-response': token};
+            const fields = {
+                url: url, 
+                quality: quality, 
+                dl_mode: dlMode, 
+                task_id: taskId, 
+                'cf-turnstile-response': token
+            };
+            
             for (const key in fields) {
                 const input = document.createElement('input');
                 input.name = key;
