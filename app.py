@@ -52,19 +52,29 @@ def get_ydl_opts():
     opts = {
         'quiet': False,
         'no_warnings': False,
-        'remote_components': ['ejs:github'],   # Mantido o seu original
+        'remote_components': ['ejs:github'],
         'js_runtimes': {
-            'node': {}                         # Mantido o seu original
+            'node': {}
         },
         'cachedir': os.path.join(os.getcwd(), '.yt-dlp-cache'),
         'force_ipv4': True,
         'extractor_retries': 5,
         'fragment_retries': 5,
         'retries': 5,
-        'noplaylist': True, # Essencial para o check ser instantâneo!
+        'noplaylist': True, 
+        
+        # --- MODO TURBO (15 Conexões por vídeo) ---
+        'concurrent_fragment_downloads': 15,
+        
+        # --- ASSASSINO DE PAUSAS (Bypassa a espera do YouTube) ---
+        'sleep_interval_requests': 0,
+        'sleep_interval': 0,
+        'max_sleep_interval': 0,
     }
+    
     if os.path.exists('cookies.txt'):
         opts['cookiefile'] = 'cookies.txt'
+        
     return opts
 
 # --- ROTAS ---
